@@ -1,6 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AWS Basic Serverless Application
 
-## Getting Started
+This is an AWS serverless application that allows a user to record audio and automatically upload to an AWS S3 bucket.
+
+- Next.js
+- AWS S3, Lambda, API Gateway
+- Terraform
+---
+### AWS Architecture
+![AWS Architecture](assets/image/aws_architecture.png)
+## How to run the app
+
+### Clone the repository
+
+```bash 
+git clone https://github.com/your-repo/my-audio-app.git
+cd my-audio-app
+```
+
+### Install dependencies & set up set up environmental variables
+
+```bash
+npm install
+cp .env.example .env.local
+```
+
+### Edit <code>.env.local</code> and set the API Gateway URL:
+Update the API Gateway URL with the API Gateway created from the Terraform deployment on AWS.
+```bash
+NEXT_PUBLIC_API_URL=https://your-api-gateway.amazonaws.com
+```
+
+### Set Up AWS Infrastructure with Terraform
+
+Make sure that you have the AWS CLI configured with your credentials for AWS. Refer to [AWS CLI documentation for guidance](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
+
+Navigate to the <code>/terraform</code> folder.
+
+```bash
+cd terraform
+```
+
+Initialize, validate, plan, and apply Terraform.
+
+```bash
+terraform init
+terraform validate
+terraform plan
+terraform apply
+```
+
+<code>output.tf</code> is set to output the API Gateway URL. So update <code>NEXT_PUBLIC_API_URL=https://your-api-gateway.amazonaws.com</code> in <code>.env.local</code>with the output API Gateway URL.
+
+Run the following command to grab the API Gateway URL.
+
+```bash
+terraform output api_gateway_url
+```
+
+### Install dependencies for lambda function and package lambda function for deployment
+
+Make sure that the system has Python 3.8+ installed. Navigate to <code>/lambda</code> directory.
+
+```bash
+pip install -r requirements.txt
+./package.sh
+```
+
+### Deploy lambda function
+
+Navigate to the <code>/terraform</code> directory. Running the following commands will have Terraform deloy (re-apply) the lambda function onto AWS.
+
+```bash
+terraform init
+terraform apply -auto-approve
+```
+
+### Next.js
 
 First, run the development server:
 
@@ -14,23 +89,22 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Test audio upload
+1️⃣ Go to http://localhost:3000/upload.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2️⃣ Record audio and click "Stop".
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3️⃣ Check the console for upload confirmation.
 
-## Learn More
+4️⃣ Verify the file in AWS S3:
 
-To learn more about Next.js, take a look at the following resources:
+- Go to AWS Console → S3.
+- Open the bucket and check for the audio file.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Destroy AWS infrastructure with Terraform
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Delete the audio file from S3 bucket. Then destroy your AWS resources.
+```bash
+terraform destroy
+```
+Verify that the S3, Lambda function, and API Gateway have been destroyed.
