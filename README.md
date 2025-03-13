@@ -30,6 +30,15 @@ Update the API Gateway URL with the API Gateway created from the Terraform deplo
 NEXT_PUBLIC_API_URL=https://your-api-gateway.amazonaws.com
 ```
 
+### Install dependencies for lambda function and package lambda function for deployment
+
+Make sure that the system has Python 3.8+ installed. Navigate to <code>/lambda</code> directory.
+
+```bash
+pip install -r requirements.txt
+./package.sh
+```
+
 ### Set Up AWS Infrastructure with Terraform
 
 Make sure that you have the AWS CLI configured with your credentials for AWS. Refer to [AWS CLI documentation for guidance](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
@@ -55,24 +64,6 @@ Run the following command to grab the API Gateway URL.
 
 ```bash
 terraform output api_gateway_url
-```
-
-### Install dependencies for lambda function and package lambda function for deployment
-
-Make sure that the system has Python 3.8+ installed. Navigate to <code>/lambda</code> directory.
-
-```bash
-pip install -r requirements.txt
-./package.sh
-```
-
-### Deploy lambda function
-
-Navigate to the <code>/terraform</code> directory. Running the following commands will have Terraform deloy (re-apply) the lambda function onto AWS.
-
-```bash
-terraform init
-terraform apply -auto-approve
 ```
 
 ### Next.js
