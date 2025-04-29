@@ -24,7 +24,7 @@ Built with:
 
 ```bash 
 git clone https://github.com/your-repo/my-audio-app.git
-cd my-audio-app
+cd aws-audio-transcription-app
 ```
 
 ### Install dependencies & set up set up environmental variables
