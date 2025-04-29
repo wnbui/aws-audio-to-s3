@@ -12,4 +12,3 @@ output "api_gateway_url" {
   description = "API Gateway URL for audio upload"
   value       = aws_apigatewayv2_api.api.api_endpoint
 }
-

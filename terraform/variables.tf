@@ -1,14 +1,9 @@
 variable "aws_region" {
-  description = "AWS region for deployment"
+  description = "AWS region to deploy resources"
   default     = "us-east-1"
 }
 
-variable "s3_bucket_name" {
-  description = "S3 bucket for storing audio"
-  default     = "wnbui-audio-app-bucket"
-}
-
-variable "lambda_function_name" {
-  description = "Lambda function name"
-  default     = "audio-upload-lambda"
+variable "s3_bucket_base_name" {
+  description = "Base name for S3 bucket"
+  default     = "my-audio-app"
 }
