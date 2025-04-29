@@ -17,7 +17,7 @@ Built with:
 - [mic-recorder-to-mp3](https://www.npmjs.com/package/mic-recorder-to-mp3) for clean MP3
 ---
 ### AWS Architecture
-![AWS Architecture](assets/image/aws_architecture.png)
+![AWS Architecture](/terraform/final_architecture.png)
 ## How to run the app
 
 ### Clone the repository
@@ -85,6 +85,8 @@ pnpm dev
 # or
 bun dev
 ```
+
+Have fun playing with the app!
 
 ### Destroy AWS infrastructure with Terraform
 
