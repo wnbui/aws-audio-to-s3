@@ -1,10 +1,20 @@
-# AWS Basic Serverless Application
+# Audio Transcription App with AWS and Next.js
 
-This is an AWS serverless application that allows a user to record audio and automatically upload to an AWS S3 bucket.
+This project is a **full-stack serverless application** that allows users to:
 
-- Next.js
-- AWS S3, Lambda, API Gateway
-- Terraform
+- Record audio directly in the browser
+- Upload the audio file to **AWS S3**
+- Automatically start a **transcription job** using **Amazon Transcribe**
+- Retrieve the transcription and display it dynamically
+
+Built with:
+- [Next.js 15 (App Router)](https://nextjs.org/)
+- [AWS Lambda](https://aws.amazon.com/lambda/)
+- [Amazon S3](https://aws.amazon.com/s3/)
+- [Amazon Transcribe](https://aws.amazon.com/transcribe/)
+- [Amazon DynamoDB](https://aws.amazon.com/dynamodb/)
+- [Terraform](https://www.terraform.io/) for infrastructure as code
+- [mic-recorder-to-mp3](https://www.npmjs.com/package/mic-recorder-to-mp3) for clean MP3
 ---
 ### AWS Architecture
 ![AWS Architecture](assets/image/aws_architecture.png)
@@ -28,15 +38,17 @@ cp .env.example .env.local
 Update the API Gateway URL with the API Gateway created from the Terraform deployment on AWS.
 ```bash
 NEXT_PUBLIC_API_URL=https://your-api-gateway.amazonaws.com
+NEXT_PUBLIC_DYNAMODB_TABLE_NAME=Transcriptions
 ```
 
-### Install dependencies for lambda function and package lambda function for deployment
+### Install dependencies for lambda functions and package lambda functions for deployment
 
 Make sure that the system has Python 3.8+ installed. Navigate to <code>/lambda</code> directory.
 
 ```bash
-pip install -r requirements.txt
-./package.sh
+cd lambda
+chmod +x package.sh package_process.sh
+./package_all.sh
 ```
 
 ### Set Up AWS Infrastructure with Terraform
@@ -60,12 +72,6 @@ terraform apply
 
 <code>output.tf</code> is set to output the API Gateway URL. So update <code>NEXT_PUBLIC_API_URL=https://your-api-gateway.amazonaws.com</code> in <code>.env.local</code>with the output API Gateway URL.
 
-Run the following command to grab the API Gateway URL.
-
-```bash
-terraform output api_gateway_url
-```
-
 ### Next.js
 
 First, run the development server:
@@ -80,21 +86,9 @@ pnpm dev
 bun dev
 ```
 
-### Test audio upload
-1️⃣ Go to http://localhost:3000/upload.
-
-2️⃣ Record audio and click "Stop".
-
-3️⃣ Check the console for upload confirmation.
-
-4️⃣ Verify the file in AWS S3:
-
-- Go to AWS Console → S3.
-- Open the bucket and check for the audio file.
-
 ### Destroy AWS infrastructure with Terraform
 
-Delete the audio file from S3 bucket. Then destroy your AWS resources.
+Delete the audio file and transcriptions from the S3 bucket. Then destroy your AWS resources.
 ```bash
 terraform destroy
 ```
