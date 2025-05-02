@@ -40,7 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-lambda/package
+lambda/get_package
 lambda/process_package
 lambda/upload_package
 terraform/.terraform.lock.hcl
