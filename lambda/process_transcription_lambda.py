@@ -2,34 +2,34 @@ import json
 import boto3
 import os
 
-s3_client = boto3.client("s3")
-dynamodb = boto3.resource("dynamodb")
-
-DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "Transcriptions")
+s3_client  = boto3.client("s3")
+dynamodb   = boto3.resource("dynamodb")
+TABLE_NAME = os.environ["DYNAMODB_TABLE_NAME"]
 
 def lambda_handler(event, context):
-    try:
-        record = event["Records"][0]
-        bucket_name = record["s3"]["bucket"]["name"]
-        object_key = record["s3"]["object"]["key"]
+    for record in event["Records"]:
+        bucket = record["s3"]["bucket"]["name"]
+        key    = record["s3"]["object"]["key"]
 
-        response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
-        content = response['Body'].read()
-        transcription_json = json.loads(content)
+        # Only process transcription JSON files
+        if not key.startswith("transcription_") or not key.endswith(".json"):
+            continue
 
-        transcription_text = transcription_json['results']['transcripts'][0]['transcript']
+        # Fetch and parse Transcribe output
+        content = s3_client.get_object(Bucket=bucket, Key=key)["Body"].read()
+        jo      = json.loads(content)
+        transcripts = jo.get("results", {}).get("transcripts", [])
+        text = transcripts[0].get("transcript", "") if transcripts else ""
 
-        job_name = object_key.split('/')[-1].replace('.json', '')
-
-        table = dynamodb.Table(DYNAMODB_TABLE_NAME)
+        # Update DynamoDB item
+        job_name = key.replace(".json", "")
+        table    = dynamodb.Table(TABLE_NAME)
         table.update_item(
             Key={"JobName": job_name},
-            UpdateExpression="SET #s = :s, TranscriptionText = :t",
-            ExpressionAttributeNames={"#s": "Status"},
-            ExpressionAttributeValues={":s": "COMPLETED", ":t": transcription_text}
+            UpdateExpression="SET #st = :s, TranscriptionText = :t",
+            ExpressionAttributeNames={"#st": "Status"},
+            ExpressionAttributeValues={":s": "COMPLETED", ":t": text}
         )
 
-        return {"statusCode": 200, "body": "Transcription processed."}
+    return {"statusCode": 200}
 
-    except Exception as e:
-        return {"statusCode": 500, "body": str(e)}

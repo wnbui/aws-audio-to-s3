@@ -40,8 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-lambda/package.sh
-lambda/package/
+lambda/package
+lambda/process_package
+lambda/upload_package
 terraform/.terraform.lock.hcl
 terraform/.terraform/
 terraform/lambda.zip
