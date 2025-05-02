@@ -40,11 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-lambda/get_package
-lambda/process_package
-lambda/upload_package
+lambda/get_package/
+lambda/process_package/
+lambda/upload_package/
 terraform/.terraform.lock.hcl
 terraform/.terraform/
-terraform/lambda.zip
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
