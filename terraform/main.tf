@@ -92,7 +92,7 @@ resource "aws_iam_role_policy_attachment" "lambda_permissions_attach" {
   policy_arn = aws_iam_policy.lambda_permissions_policy.arn
 }
 
-# First Lambda Function: Upload audio + start transcription
+# First Lambda Function: Upload audio & start transcription
 resource "aws_lambda_function" "audio_lambda" {
   filename      = "lambda.zip"
   function_name = "audio-upload-lambda"
@@ -110,7 +110,7 @@ resource "aws_lambda_function" "audio_lambda" {
   source_code_hash = filebase64sha256("lambda.zip")
 }
 
-# Second Lambda Function: Process transcription outputs
+# Second Lambda Function: Process & store transcription
 resource "aws_lambda_function" "process_transcription_lambda" {
   filename      = "process_lambda.zip"
   function_name = "process-transcription-lambda"
@@ -127,6 +127,23 @@ resource "aws_lambda_function" "process_transcription_lambda" {
   source_code_hash = filebase64sha256("process_lambda.zip")
 }
 
+# Third Lambda Function: Get transcription
+
+resource "aws_lambda_function" "get_transcription_lambda" {
+  function_name    = "get-transcription_lambda"
+  filename         = "get_transcription_lambda.zip"
+  handler          = "get_transcription_lambda.lambda_handler"
+  runtime          = "python3.9"
+  source_code_hash = filebase64sha256("get_transcription_lambda.zip")
+  role             = aws_iam_role.lambda_role.arn
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.transcriptions_table.name
+    }
+  }
+}
+
 # API Gateway for frontend to upload
 resource "aws_apigatewayv2_api" "api" {
   name          = "audio-api"
@@ -139,27 +156,51 @@ resource "aws_apigatewayv2_stage" "default" {
   auto_deploy = true
 }
 
-resource "aws_apigatewayv2_integration" "lambda_integration" {
-  api_id           = aws_apigatewayv2_api.api.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = aws_lambda_function.audio_lambda.invoke_arn
+# POST /upload
+resource "aws_apigatewayv2_integration" "upload_integration" {
+  api_id                 = aws_apigatewayv2_api.api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.audio_lambda.invoke_arn
+  payload_format_version = "2.0"
 }
 
 resource "aws_apigatewayv2_route" "upload_route" {
   api_id    = aws_apigatewayv2_api.api.id
   route_key = "POST /upload"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.upload_integration.id}"
 }
 
-resource "aws_lambda_permission" "apigateway_lambda_permission" {
-  statement_id  = "AllowAPIGatewayInvoke"
+resource "aws_lambda_permission" "allow_api_upload" {
+  statement_id  = "AllowAPIGatewayInvokeUpload"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.audio_lambda.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
+  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/POST/upload"
 }
 
-# DynamoDB Table for transcription results
+# GET /get-transcription
+resource "aws_apigatewayv2_integration" "get_transcription_integration" {
+  api_id                 = aws_apigatewayv2_api.api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.get_transcription_lambda.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_transcription_route" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "GET /get-transcription"
+  target    = "integrations/${aws_apigatewayv2_integration.get_transcription_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_get" {
+  statement_id  = "AllowAPIGatewayInvokeGet"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_transcription_lambda.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/GET/get-transcription"
+}
+
+# DynamoDB Table for transcriptions results
 resource "aws_dynamodb_table" "transcriptions_table" {
   name         = "Transcriptions"
   billing_mode = "PAY_PER_REQUEST"
@@ -171,16 +212,7 @@ resource "aws_dynamodb_table" "transcriptions_table" {
   }
 }
 
-# Permission for S3 to trigger Process Lambda on transcription JSON upload
-resource "aws_lambda_permission" "allow_s3_to_invoke_process_lambda" {
-  statement_id  = "AllowS3InvokeProcessLambda"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.process_transcription_lambda.function_name
-  principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.audio_bucket.arn
-}
-
-# S3 Event Notification for completed transcription JSON files
+# S3 Notification for completed transcription
 resource "aws_s3_bucket_notification" "s3_notification" {
   bucket = aws_s3_bucket.audio_bucket.id
 
@@ -192,6 +224,15 @@ resource "aws_s3_bucket_notification" "s3_notification" {
   }
 
   depends_on = [
-    aws_lambda_permission.allow_s3_to_invoke_process_lambda
+    aws_lambda_permission.allow_s3_to_invoke_process_transcription_lambda
   ]
+}
+
+# Permission for S3 to trigger process lambda
+resource "aws_lambda_permission" "allow_s3_to_invoke_process_transcription_lambda" {
+  statement_id  = "AllowS3InvokeProcessTranscription"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.process_transcription_lambda.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = aws_s3_bucket.audio_bucket.arn
 }

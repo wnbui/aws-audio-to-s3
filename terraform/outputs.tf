@@ -3,9 +3,9 @@ output "s3_bucket_name" {
   value       = aws_s3_bucket.audio_bucket.id
 }
 
-output "lambda_function_arn" {
-  description = "Lambda function ARN"
-  value       = aws_lambda_function.audio_lambda.arn
+output "dynamodb_table_name" {
+  description = "Name of the DynamoDB table storing transcription jobs"
+  value       = aws_dynamodb_table.transcriptions_table.name
 }
 
 output "api_gateway_url" {
